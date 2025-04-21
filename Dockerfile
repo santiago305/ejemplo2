@@ -50,5 +50,20 @@ RUN php artisan storage:link
 RUN chown -R www-data:www-data /var/www
 RUN chmod -R 775 storage bootstrap/cache
 
+FROM nginx:stable-alpine
+
+# Copiar configuración personalizada de nginx
+COPY ./nginx.conf /etc/nginx/nginx.conf
+
+# Copiar el código desde backend
+COPY --from=backend /var/www /var/www
+
+# Copiar el socket PHP-FPM desde la fase backend
+COPY --from=backend /usr/local/etc/php-fpm.d/zz-docker.conf /usr/local/etc/php-fpm.d/zz-docker.conf
+COPY --from=backend /usr/local/sbin/php-fpm /usr/local/sbin/php-fpm
+
+# Exponer puerto HTTP
 EXPOSE 80
-CMD ["php-fpm"]
+
+# Comando por defecto
+CMD ["sh", "-c", "php-fpm -D && nginx -g 'daemon off;'"]
